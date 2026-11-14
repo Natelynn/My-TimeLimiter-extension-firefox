@@ -103,7 +103,7 @@
       if (mode === "limit-youtube") {
         showOverlayBanner(`⏳ Лимит YouTube исчерпан (${status.used} из ${status.limit} мин). Доступен только поиск.`);
       } else {
-        showOverlayBanner(`ℹ️ Рекомендации YouTube отключены — сейчас нет разрешённого интервала. Поиск работает.`);
+        showOverlayBanner(`Рекомендации YouTube отключены — сейчас нет разрешённого интервала. Поиск работает.`);
       }
     } else {
       stopYtNoRecs();

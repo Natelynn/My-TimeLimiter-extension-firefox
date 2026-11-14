@@ -1,8 +1,8 @@
 body {
   margin: 0;
   font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-  background: #f4f4f8;
-  color: #222;
+  background: #1f1f28;
+  color: #eee;
 }
 
 .wrap {
@@ -12,11 +12,12 @@ body {
 }
 
 h1 { margin: 0 0 4px; font-size: 28px; }
-.sub { margin: 0 0 20px; color: #777; }
+.sub { margin: 0 0 20px; color: #bbb; }
+#enabled {accent-color: #9146ff;}
 
 .card {
-  background: #fff;
-  border: 1px solid #ddd;
+  background: #1f1f28;
+  border: 1px solid #bbb;
   border-radius: 12px;
   padding: 18px 20px;
   margin-bottom: 16px;
