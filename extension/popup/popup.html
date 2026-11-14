@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      width: 320px;
+      margin: 0;
+      font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      background: #1f1f28;
+      color: #eee;
+      padding: 14px 16px;
+    }
+    h2 { margin: 0 0 10px; font-size: 17px; }
+    .row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #33333f; font-size: 14px; }
+    .row:last-of-type { border-bottom: none; }
+    .ok { color: #6fdc8c; }
+    .warn { color: #ffd966; }
+    .bad { color: #ff7b7b; }
+    .intervals { font-size: 13px; color: #aaa; margin: 8px 0; line-height: 1.5; }
+    button {
+      width: 100%;
+      margin-top: 10px;
+      padding: 9px;
+      border: none;
+      border-radius: 8px;
+      background: #9146ff;
+      color: #fff;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .status-now { font-size: 13px; margin-bottom: 6px; color: #bbb; }
+  </style>
+</head>
+<body>
+  <h2>🎯 Focus Manager</h2>
+  <div class="status-now" id="now"></div>
+  <div class="row"><span>Twitch:</span><span id="twitchStatus">…</span></div>
+  <div class="row"><span>YouTube:</span><span id="ytStatus">…</span></div>
+  <div class="intervals" id="intervals"></div>
+  <button id="openOptions">⚙ Открыть настройки</button>
+  <script src="popup.js"></script>
+</body>
+</html>

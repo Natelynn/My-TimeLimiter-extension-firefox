@@ -1,0 +1,51 @@
+{
+  "manifest_version": 2,
+  "name": "Twitch/YouTube Focus Manager",
+  "version": "1.0.0",
+  "description": "Разрешает ограниченное время на Twitch и YouTube в заданные интервалы. Вне интервалов: Twitch заблокирован, рекомендации YouTube отключены.",
+
+  "icons": {
+    "48": "icons/icon-48.png",
+    "96": "icons/icon-96.png"
+  },
+
+  "permissions": [
+    "storage",
+    "tabs",
+    "webRequest",
+    "webRequestBlocking",
+    "<all_urls>"
+  ],
+
+  "background": {
+    "scripts": ["background/background.js"]
+  },
+
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.youtube.com/*",
+        "*://youtube.com/*",
+        "*://*.twitch.tv/*",
+        "*://twitch.tv/*"
+      ],
+      "js": ["content/content.js"],
+      "css": ["content/content.css"],
+      "run_at": "document_start",
+      "all_frames": false
+    }
+  ],
+
+  "browser_action": {
+    "default_title": "Focus Manager",
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "48": "icons/icon-48.png"
+    }
+  },
+
+  "options_ui": {
+    "page": "options/options.html",
+    "open_in_tab": true
+  }
+}
