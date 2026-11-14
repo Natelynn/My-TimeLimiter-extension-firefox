@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title>Focus Manager — настройки</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="wrap">
+    <h1>🎯 Focus Manager</h1>
+    <p class="sub">Управление временем на Twitch и YouTube</p>
+
+    <section class="card">
+      <label class="switch-row">
+        <input type="checkbox" id="enabled">
+        <span>Расширение включено</span>
+      </label>
+    </section>
+
+    <section class="card">
+      <h2>Лимиты по умолчанию</h2>
+      <div class="grid">
+        <label>Twitch (минут в интервале):
+          <input type="number" id="twitchLimitMin" min="0" step="5">
+          <small>0 — без лимита</small>
+        </label>
+        <label>YouTube (минут в интервале):
+          <input type="number" id="youtubeLimitMin" min="0" step="5">
+          <small>0 — без лимита</small>
+        </label>
+      </div>
+      <p class="hint">Эти значения используются, если у конкретного интервала не задан свой лимит.</p>
+    </section>
+
+    <section class="card">
+      <h2>Разрешённые интервалы</h2>
+      <p class="hint">Внутри интервала доступны Twitch (до лимита минут) и YouTube с рекомендациями.<br>
+      Вне интервалов Twitch заблокирован, рекомендации YouTube отключены (поиск работает).</p>
+      <div id="intervals"></div>
+      <button type="button" id="addInterval" class="btn secondary">＋ Добавить интервал</button>
+    </section>
+
+    <div class="actions">
+      <button type="button" id="save" class="btn primary">💾 Сохранить</button>
+      <button type="button" id="resetUsage" class="btn danger">Сбросить счётчик времени за сегодня</button>
+      <span id="savedMsg" class="saved-msg hidden">✔ Сохранено</span>
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
