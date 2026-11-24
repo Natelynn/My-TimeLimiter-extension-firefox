@@ -2,43 +2,78 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8">
-  <style>
-    body {
-      width: 320px;
-      margin: 0;
-      font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-      background: #1f1f28;
-      color: #eee;
-      padding: 14px 16px;
-    }
-    h2 { margin: 0 0 10px; font-size: 17px; }
-    .row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #33333f; font-size: 14px; }
-    .row:last-of-type { border-bottom: none; }
-    .ok { color: #6fdc8c; }
-    .warn { color: #ffd966; }
-    .bad { color: #ff7b7b; }
-    .intervals { font-size: 13px; color: #aaa; margin: 8px 0; line-height: 1.5; }
-    button {
-      width: 100%;
-      margin-top: 10px;
-      padding: 9px;
-      border: none;
-      border-radius: 8px;
-      background: #9146ff;
-      color: #fff;
-      font-size: 14px;
-      cursor: pointer;
-    }
-    .status-now { font-size: 13px; margin-bottom: 6px; color: #bbb; }
-  </style>
+  <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <h2>🎯 Focus Manager</h2>
-  <div class="status-now" id="now"></div>
-  <div class="row"><span>Twitch:</span><span id="twitchStatus">…</span></div>
-  <div class="row"><span>YouTube:</span><span id="ytStatus">…</span></div>
-  <div class="intervals" id="intervals"></div>
-  <button id="openOptions">⚙ Открыть настройки</button>
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="status">Статус</button>
+    <button class="tab-btn" data-tab="manage">Управление</button>
+  </div>
+
+  <!-- Вкладка 1: только просмотр, никаких опасных кнопок -->
+  <section id="tab-status" class="tab-page active">
+    <div id="statusLine" class="status-line">…</div>
+    <div id="timerBlock" class="card hidden">
+      <div class="timer-label">Общий лимит по всем сайтам из перечня</div>
+      <div class="timer-row"><span>Использовано:</span><b id="usedTime">—</b></div>
+      <div class="timer-row"><span>Лимит:</span><b id="limitTime">—</b></div>
+      <div class="timer-row"><span>Осталось:</span><b id="leftTime">—</b></div>
+      <div class="bar"><div id="barFill" class="bar-fill"></div></div>
+    </div>
+    <div id="intervalsBlock" class="card">
+      <div class="card-title">Интервалы на сегодня (24-ч формат)</div>
+      <ul id="intervalList" class="interval-list"></ul>
+    </div>
+    <div class="card">
+      <div class="card-title">Сайты в перечне</div>
+      <ul id="siteList" class="site-list"></ul>
+    </div>
+  </section>
+
+  <!-- Вкладка 2: управление (нужен пароль) -->
+  <section id="tab-manage" class="tab-page">
+    <div id="lockBlock" class="card">
+      <div class="card-title">🔒 Для управления введите пароль</div>
+      <input id="pwInput" type="password" placeholder="Пароль" autocomplete="off">
+      <button id="unlockBtn" class="btn primary">Разблокировать</button>
+      <div id="pwError" class="error hidden">Неверный пароль.</div>
+      <div id="noPwHint" class="hint hidden">
+        Пароль ещё не задан. Задайте его — он защитит настройки от случайного изменения.
+        <input id="pwNew1" type="password" placeholder="Новый пароль">
+        <input id="pwNew2" type="password" placeholder="Повторите пароль">
+        <button id="setPwBtn" class="btn primary">Задать пароль</button>
+      </div>
+    </div>
+
+    <div id="manageBlock" class="hidden">
+      <div class="card">
+        <button id="openOptionsBtn" class="btn big">⚙️ Открыть настройки расширения</button>
+        <div class="hint">Интервалы, перечень сайтов и лимиты — в настройках.</div>
+      </div>
+      <div class="card">
+        <button id="resetBtn" class="btn">↺ Сбросить счётчик использованного времени</button>
+      </div>
+      <div class="card">
+        <label class="switch-row">
+          <input type="checkbox" id="enabledChk">
+          <span>Расширение включено</span>
+        </label>
+      </div>
+      <div class="card">
+        <button id="changePwBtn" class="btn small">Сменить пароль</button>
+        <div id="changePwForm" class="hidden">
+          <input id="oldPw" type="password" placeholder="Текущий пароль">
+          <input id="newPw1" type="password" placeholder="Новый пароль">
+          <input id="newPw2" type="password" placeholder="Повторите новый">
+          <button id="savePwBtn" class="btn primary small">Сохранить</button>
+          <div id="pwMsg" class="hint"></div>
+        </div>
+      </div>
+      <button id="lockAgainBtn" class="btn small ghost">🔒 Заблокировать обратно</button>
+    </div>
+  </section>
+
+  <script src="../shared/utils.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

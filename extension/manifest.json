@@ -1,8 +1,8 @@
 {
-  "manifest_version": 2,
-  "name": "Twitch/YouTube Focus Manager",
-  "version": "1.0.0",
-  "description": "Разрешает ограниченное время на Twitch и YouTube в заданные интервалы. Вне интервалов: Twitch заблокирован, рекомендации YouTube отключены.",
+  "manifest_version": 3,
+  "name": "Focus Manager — лимиты сайтов по интервалам",
+  "version": "2.0.0",
+  "description": "Разрешает ограниченное время на сайты из перечня в заданные интервалы (24-ч формат). Вне интервалов: полные блокировки или скрытие рекомендаций — по настройке для каждого сайта.",
 
   "icons": {
     "48": "icons/icon-48.png",
@@ -12,31 +12,27 @@
   "permissions": [
     "storage",
     "tabs",
-    "webRequest",
-    "webRequestBlocking",
+    "alarms"
+  ],
+
+  "host_permissions": [
     "<all_urls>"
   ],
 
   "background": {
-    "scripts": ["background/background.js"]
+    "scripts": ["background/alarm-worker.js"]
   },
 
   "content_scripts": [
     {
-      "matches": [
-        "*://*.youtube.com/*",
-        "*://youtube.com/*",
-        "*://*.twitch.tv/*",
-        "*://twitch.tv/*"
-      ],
+      "matches": ["<all_urls>"],
       "js": ["content/content.js"],
       "css": ["content/content.css"],
-      "run_at": "document_start",
-      "all_frames": false
+      "run_at": "document_start"
     }
   ],
 
-  "browser_action": {
+  "action": {
     "default_title": "Focus Manager",
     "default_popup": "popup/popup.html",
     "default_icon": {
@@ -47,5 +43,12 @@
   "options_ui": {
     "page": "options/options.html",
     "open_in_tab": true
+  },
+
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "focus-manager@example.com",
+      "strict_min_version": "109.0"
+    }
   }
 }

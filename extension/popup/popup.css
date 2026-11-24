@@ -1,0 +1,73 @@
+/* Focus Manager — popup */
+
+:root { color-scheme: dark; }
+* { box-sizing: border-box; }
+body {
+  width: 360px;
+  margin: 0;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  background: #1c1e22;
+  color: #e8eaed;
+  font-size: 13px;
+}
+
+.tabs { display: flex; border-bottom: 1px solid #2e3138; }
+.tab-btn {
+  flex: 1; padding: 10px 0; background: none; border: none;
+  color: #9aa0a8; cursor: pointer; font-size: 13px;
+}
+.tab-btn.active { color: #fff; border-bottom: 2px solid #4f8cff; }
+
+.tab-page { display: none; padding: 12px; }
+.tab-page.active { display: block; }
+
+.card {
+  background: #24272d; border: 1px solid #2e3138; border-radius: 8px;
+  padding: 10px 12px; margin-bottom: 10px;
+}
+.card-title { font-weight: 600; margin-bottom: 8px; color: #cfd4db; }
+
+.status-line { font-size: 14px; font-weight: 600; margin-bottom: 10px; }
+.status-line.ok { color: #5ec96a; }
+.status-line.warn { color: #e6b450; }
+.status-line.bad { color: #ef6c6c; }
+
+.timer-row { display: flex; justify-content: space-between; padding: 2px 0; }
+.timer-label { color: #9aa0a8; margin-bottom: 6px; }
+
+.bar { height: 6px; background: #33373f; border-radius: 3px; margin-top: 8px; overflow: hidden; }
+.bar-fill { height: 100%; width: 0; background: #4f8cff; transition: width .4s; }
+.bar-fill.danger { background: #ef6c6c; }
+
+.interval-list, .site-list { list-style: none; margin: 0; padding: 0; }
+.interval-list li, .site-list li {
+  display: flex; justify-content: space-between; padding: 4px 0;
+  border-bottom: 1px dashed #2e3138;
+}
+.interval-list li:last-child, .site-list li:last-child { border-bottom: none; }
+.iv-current { color: #5ec96a; font-weight: 700; }
+.mode-tag { font-size: 11px; color: #9aa0a8; }
+.mode-tag.block { color: #ef6c6c; }
+.mode-tag.no-recs { color: #e6b450; }
+
+.btn {
+  background: #33373f; color: #e8eaed; border: 1px solid #41454e;
+  border-radius: 6px; padding: 8px 12px; cursor: pointer; font-size: 13px;
+}
+.btn:hover { background: #3d424c; }
+.btn.primary { background: #4f8cff; border-color: #4f8cff; color: #fff; }
+.btn.primary:hover { background: #3f7bf0; }
+.btn.big { width: 100%; padding: 12px; font-size: 14px; }
+.btn.small { padding: 5px 10px; font-size: 12px; }
+.btn.ghost { background: none; }
+
+input[type="password"], input[type="text"] {
+  width: 100%; margin: 5px 0; padding: 7px 9px;
+  background: #16181c; color: #e8eaed;
+  border: 1px solid #41454e; border-radius: 6px;
+}
+
+.switch-row { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.hint { color: #9aa0a8; font-size: 12px; margin-top: 6px; line-height: 1.45; }
+.error { color: #ef6c6c; font-size: 12px; margin-top: 6px; }
+.hidden { display: none !important; }
