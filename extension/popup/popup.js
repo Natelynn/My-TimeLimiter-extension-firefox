@@ -1,70 +1,209 @@
+/**
+ * Focus Manager — popup.
+ * Вкладка «Статус» — только просмотр.
+ * Вкладка «Управление» — пароль, затем кнопка настроек/сброс/вкл-выкл.
+ */
+
 "use strict";
 
-function fmtMin(m) {
-  if (m == null) return "";
-  const h = Math.floor(m / 60), mm = m % 60;
-  return h ? `${h} ч ${mm} мин` : `${mm} мин`;
+const $ = (id) => document.getElementById(id);
+
+let settings = null;
+let state = null;
+let unlocked = false; // разблокирована ли вкладка управления в этой сессии попапа
+
+// ---------- Вкладки ----------
+document.querySelectorAll(".tab-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+    document.querySelectorAll(".tab-page").forEach((p) => p.classList.remove("active"));
+    btn.classList.add("active");
+    $("tab-" + btn.dataset.tab).classList.add("active");
+    if (btn.dataset.tab === "manage") renderManage();
+  });
+});
+
+// ---------- Данные ----------
+async function loadData() {
+  const res = await browser.runtime.sendMessage({ type: "get-overview" });
+  settings = res.settings;
+  state = res.state;
 }
 
-async function refresh() {
-  const res = await browser.runtime.sendMessage({ type: "get-all-status" });
-  if (!res) return;
+function currentInterval() {
+  const mins = FM.nowMinutes();
+  return settings.intervals.find((iv) => FM.inInterval(mins, iv)) || null;
+}
 
-  const nowEl = document.getElementById("now");
-  const tEl = document.getElementById("twitchStatus");
-  const yEl = document.getElementById("ytStatus");
-  const iEl = document.getElementById("intervals");
+// ---------- Вкладка статуса ----------
+function renderStatus() {
+  const line = $("statusLine");
+  const iv = currentInterval();
 
-  if (!res.enabled) {
-    nowEl.textContent = "Расширение выключено";
-    tEl.textContent = "выключено"; tEl.className = "warn";
-    yEl.textContent = "выключено"; yEl.className = "warn";
-  } else if (res.currentInterval) {
-    nowEl.textContent = `Сейчас идёт интервал ${res.currentInterval.start}–${res.currentInterval.end}`;
+  if (!settings.enabled) {
+    line.textContent = "⚪ Расширение выключено";
+    line.className = "status-line warn";
+    $("timerBlock").classList.add("hidden");
+  } else if (iv) {
+    const limitSec = iv.limitMinutes * 60;
+    const usedSec = Math.min(state.usedSeconds, limitSec);
+    const leftMin = Math.max(0, Math.ceil((limitSec - state.usedSeconds) / 60));
+    if (state.usedSeconds >= limitSec) {
+      line.textContent = `🔴 Лимит (${iv.limitMinutes} мин) исчерпан — сайты из перечня заблокированы`;
+      line.className = "status-line bad";
+    } else {
+      line.textContent = `🟢 Активен интервал ${iv.start}–${iv.end}, осталось ${leftMin} мин`;
+      line.className = "status-line ok";
+    }
+    $("timerBlock").classList.remove("hidden");
+    $("usedTime").textContent = FM.fmtDuration(state.usedSeconds);
+    $("limitTime").textContent = iv.limitMinutes + " мин";
+    $("leftTime").textContent = leftMin + " мин";
+    const pct = Math.min(100, Math.round((usedSec / limitSec) * 100));
+    $("barFill").style.width = pct + "%";
+    $("barFill").className = "bar-fill" + (pct >= 90 ? " danger" : "");
   } else {
-    nowEl.textContent = "Сейчас нет разрешённого интервала";
+    const next = FM.nextIntervalInfo(settings, state);
+    line.textContent = next
+      ? `⏸ Вне интервалов. Ближайший: ${next.start}–${next.end}`
+      : "⏸ Вне интервалов";
+    line.className = "status-line warn";
+    $("timerBlock").classList.add("hidden");
   }
 
-  const tw = res.twitch.mode;
-  if (tw === "allow") {
-    tEl.textContent = res.twitch.remaining != null ? `доступно, осталось ${fmtMin(res.twitch.remaining)}` : "доступно";
-    tEl.className = "ok";
-  } else if (tw === "limit-twitch") {
-    tEl.textContent = `лимит исчерпан (${res.twitch.used}/${res.twitch.limit} мин)`;
-    tEl.className = "bad";
-  } else if (tw === "blocked-twitch") {
-    tEl.textContent = "заблокирован";
-    tEl.className = "bad";
-  } else {
-    tEl.textContent = "—"; tEl.className = "";
+  // список интервалов
+  const ul = $("intervalList");
+  ul.innerHTML = "";
+  for (const x of settings.intervals) {
+    const li = document.createElement("li");
+    const isCur = iv && x.id === iv.id;
+    li.innerHTML = `<span class="${isCur ? "iv-current" : ""}">${x.start} – ${x.end}</span>` +
+                   `<span class="mode-tag">лимит ${x.limitMinutes} мин</span>`;
+    ul.appendChild(li);
   }
 
-  const yt = res.youtube.mode;
-  if (yt === "allow-yt") {
-    yEl.textContent = "полный доступ";
-    yEl.className = "ok";
-  } else if (yt === "yt-no-recs") {
-    yEl.textContent = "поиск ✓, рекомендации ✗";
-    yEl.className = "warn";
-  } else if (yt === "limit-youtube") {
-    yEl.textContent = `лимит исчерпан (${res.youtube.used}/${res.youtube.limit} мин), только поиск`;
-    yEl.className = "bad";
-  } else {
-    yEl.textContent = "—"; yEl.className = "";
-  }
-
-  if (res.intervals && res.intervals.length) {
-    iEl.innerHTML = "Интервалы:<br>" + res.intervals.map((iv) =>
-      `• ${iv.start}–${iv.end}${iv.twitchMin != null ? ` (Twitch ${iv.twitchMin} мин)` : ""}`
-    ).join("<br>");
-  } else {
-    iEl.textContent = "Интервалы не заданы";
+  // перечень сайтов
+  const sl = $("siteList");
+  sl.innerHTML = "";
+  for (const s of settings.sites) {
+    const li = document.createElement("li");
+    const modeTxt = s.mode === "no-recs" ? "вне интервала: без рекомендаций" : "вне интервала: блокировка";
+    li.innerHTML = `<span>${escapeHtml(s.label || s.host)}</span><span class="mode-tag ${s.mode}">${modeTxt}</span>`;
+    sl.appendChild(li);
   }
 }
 
-document.getElementById("openOptions").addEventListener("click", () => {
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+// ---------- Вкладка управления ----------
+async function renderManage() {
+  if (unlocked) {
+    $("lockBlock").classList.add("hidden");
+    $("manageBlock").classList.remove("hidden");
+    $("enabledChk").checked = settings.enabled;
+    return;
+  }
+  $("manageBlock").classList.add("hidden");
+  $("lockBlock").classList.remove("hidden");
+  if (!settings.passwordHash) {
+    $("pwInput").classList.add("hidden");
+    $("unlockBtn").classList.add("hidden");
+    $("noPwHint").classList.remove("hidden");
+  } else {
+    $("pwInput").classList.remove("hidden");
+    $("unlockBtn").classList.remove("hidden");
+    $("noPwHint").classList.add("hidden");
+  }
+}
+
+$("setPwBtn").addEventListener("click", async () => {
+  const a = $("pwNew1").value, b = $("pwNew2").value;
+  if (a.length < 4) { showPwError("Пароль должен быть не короче 4 символов."); return; }
+  if (a !== b) { showPwError("Пароли не совпадают."); return; }
+  settings.passwordHash = await FM.hashPassword(a);
+  await FM.saveSettings(settings);
+  notifyChanged();
+  unlocked = true;
+  renderManage();
+});
+
+$("unlockBtn").addEventListener("click", tryUnlock);
+$("pwInput").addEventListener("keydown", (e) => { if (e.key === "Enter") tryUnlock(); });
+
+async function tryUnlock() {
+  const h = await FM.hashPassword($("pwInput").value);
+  if (h === settings.passwordHash) {
+    unlocked = true;
+    $("pwInput").value = "";
+    $("pwError").classList.add("hidden");
+    renderManage();
+  } else {
+    showPwError("Неверный пароль.");
+  }
+}
+
+function showPwError(msg) {
+  const el = $("pwError");
+  el.textContent = msg;
+  el.classList.remove("hidden");
+}
+
+$("openOptionsBtn").addEventListener("click", () => {
   browser.runtime.openOptionsPage();
 });
 
-refresh();
-setInterval(refresh, 5000);
+$("resetBtn").addEventListener("click", async () => {
+  await browser.runtime.sendMessage({ type: "reset-counter" });
+  await loadData();
+  renderStatus();
+});
+
+$("enabledChk").addEventListener("change", async (e) => {
+  settings.enabled = e.target.checked;
+  await FM.saveSettings(settings);
+  notifyChanged();
+  renderStatus();
+});
+
+$("changePwBtn").addEventListener("click", () => {
+  $("changePwForm").classList.toggle("hidden");
+});
+
+$("savePwBtn").addEventListener("click", async () => {
+  const msg = $("pwMsg");
+  const oldH = await FM.hashPassword($("oldPw").value);
+  if (settings.passwordHash && oldH !== settings.passwordHash) {
+    msg.textContent = "Текущий пароль неверен."; return;
+  }
+  const a = $("newPw1").value, b = $("newPw2").value;
+  if (a.length < 4) { msg.textContent = "Новый пароль слишком короткий."; return; }
+  if (a !== b) { msg.textContent = "Новые пароли не совпадают."; return; }
+  settings.passwordHash = await FM.hashPassword(a);
+  await FM.saveSettings(settings);
+  notifyChanged();
+  ["oldPw", "newPw1", "newPw2"].forEach((id) => ($(id).value = ""));
+  msg.textContent = "Пароль обновлён ✔";
+});
+
+$("lockAgainBtn").addEventListener("click", () => {
+  unlocked = false;
+  renderManage();
+});
+
+function notifyChanged() {
+  browser.runtime.sendMessage({ type: "settings-changed" }).catch(() => {});
+}
+
+// ---------- Старт ----------
+(async function init() {
+  await loadData();
+  renderStatus();
+  renderManage();
+  setInterval(async () => {
+    await loadData();
+    renderStatus();
+  }, 15000);
+})();

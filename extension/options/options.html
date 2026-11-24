@@ -6,47 +6,80 @@
   <link rel="stylesheet" href="options.css">
 </head>
 <body>
-  <div class="wrap">
-    <h1>🎯 Focus Manager</h1>
-    <p class="sub">Управление временем на Twitch и YouTube</p>
+  <!-- Экран пароля -->
+  <section id="gate" class="page">
+    <div class="panel">
+      <h1>🔒 Настройки защищены</h1>
+      <p>Введите пароль, чтобы изменить интервалы, перечень сайтов и лимиты.</p>
+      <input id="gatePw" type="password" placeholder="Пароль" autocomplete="off">
+      <button id="gateBtn" class="btn primary">Войти</button>
+      <div id="gateErr" class="error hidden">Неверный пароль.</div>
+    </div>
+  </section>
 
-    <section class="card">
-      <label class="switch-row">
-        <input type="checkbox" id="enabled">
-        <span>Расширение включено</span>
-      </label>
-    </section>
+  <!-- Основные настройки -->
+  <section id="main" class="page hidden">
+    <h1>Настройки Focus Manager</h1>
 
-    <section class="card">
+    <div class="panel">
       <h2>Лимиты по умолчанию</h2>
-      <div class="grid">
-        <label>Twitch (минут в интервале):
-          <input type="number" id="twitchLimitMin" min="0" step="5">
-          <small>0 — без лимита</small>
+      <div class="row">
+        <label>Общий лимит на все сайты перечня (минут)
+          <input id="defLimit" type="number" min="1" max="1440" step="5">
         </label>
-        <label>YouTube (минут в интервале):
-          <input type="number" id="youtubeLimitMin" min="0" step="5">
-          <small>0 — без лимита</small>
+        <span class="hint">Это значение используется как «по умолчанию» для новых интервалов
+          и кнопкой применения ниже.</span>
+      </div>
+      <button id="applyDefaultsBtn" class="btn">⇩ Применить лимит по ко всем интервалам</button>
+      <div id="applyMsg" class="hint"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Разрешённые интервалы <span class="hint">(время 24-часовое)</span></h2>
+      <div id="intervals"></div>
+      <button id="addIntervalBtn" class="btn">+ Добавить интервал</button>
+    </div>
+
+    <div class="panel">
+      <h2>Перечень сайтов <span class="hint">(общий таймер для всех)</span></h2>
+      <div id="sites"></div>
+      <div class="row">
+        <input id="newSiteHost" type="text" placeholder="домен, напр. vk.com">
+        <input id="newSiteLabel" type="text" placeholder="название (необязательно)">
+        <select id="newSiteMode">
+          <option value="block">вне интервала: блокировать</option>
+          <option value="no-recs">вне интервала: скрывать рекомендации</option>
+        </select>
+        <button id="addSiteBtn" class="btn">+ Добавить сайт</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Прочее</h2>
+      <div class="row">
+        <label>Час ежедневного сброса счётчика (0–23)
+          <input id="resetHour" type="number" min="0" max="23">
         </label>
       </div>
-      <p class="hint">Эти значения используются, если у конкретного интервала не задан свой лимит.</p>
-    </section>
-
-    <section class="card">
-      <h2>Разрешённые интервалы</h2>
-      <p class="hint">Внутри интервала доступны Twitch (до лимита минут) и YouTube с рекомендациями.<br>
-      Вне интервалов Twitch заблокирован, рекомендации YouTube отключены (поиск работает).</p>
-      <div id="intervals"></div>
-      <button type="button" id="addInterval" class="btn secondary">＋ Добавить интервал</button>
-    </section>
-
-    <div class="actions">
-      <button type="button" id="save" class="btn primary">💾 Сохранить</button>
-      <button type="button" id="resetUsage" class="btn danger">Сбросить счётчик времени за сегодня</button>
-      <span id="savedMsg" class="saved-msg hidden">✔ Сохранено</span>
+      <div class="row">
+        <button id="changePwBtn2" class="btn small">Сменить пароль</button>
+      </div>
+      <div id="pwForm2" class="hidden">
+        <input id="oldPw2" type="password" placeholder="Текущий пароль">
+        <input id="newPwA" type="password" placeholder="Новый пароль">
+        <input id="newPwB" type="password" placeholder="Повторите новый">
+        <button id="savePwBtn2" class="btn primary small">Сохранить пароль</button>
+        <div id="pwMsg2" class="hint"></div>
+      </div>
     </div>
-  </div>
 
+    <div class="footer">
+      <button id="saveBtn" class="btn big primary">💾 Сохранить настройки</button>
+      <span id="saveMsg" class="hint"></span>
+    </div>
+  </section>
+
+  <script src="../shared/utils.js"></script>
   <script src="options.js"></script>
 </body>
 </html>
