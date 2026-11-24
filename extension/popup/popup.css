@@ -67,6 +67,19 @@ input[type="password"], input[type="text"] {
   border: 1px solid #41454e; border-radius: 6px;
 }
 
+.pw-row { display: flex; gap: 6px; align-items: center; }
+.pw-row input { margin: 5px 0; }
+
+.reveal-btn {
+  background: #33373f; border: 1px solid #41454e; border-radius: 6px;
+  color: #e8eaed; cursor: pointer; font-size: 15px; padding: 6px 9px; line-height: 1;
+}
+.reveal-btn:hover { background: #3d424c; }
+
+.reset-timer { font-size: 22px; font-weight: 700; letter-spacing: 2px; color: #e6b450; margin: 6px 0; }
+.row { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
+.btn.small.ghost { background: none; }
+
 .switch-row { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .hint { color: #9aa0a8; font-size: 12px; margin-top: 6px; line-height: 1.45; }
 .error { color: #ef6c6c; font-size: 12px; margin-top: 6px; }

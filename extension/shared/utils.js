@@ -15,6 +15,8 @@ const FM = (() => {
   const DEFAULT_SETTINGS = {
     enabled: true,
     passwordHash: null,          // null => пароль не задан
+    pwReveal: false,             // показывать пароль при вводе (кнопка 👁)
+    resetRequestedAt: null,      // когда нажата кнопка сброса пароля (мс) или null
     dailyResetHour: 4,           // сброс счётчика в 04:00
     defaults: {                  // лимиты по умолчанию (применяются ко всем интервалам)
       limitMinutes: 60,          // общий лимит минут на все сайты внутри интервала
@@ -168,6 +170,45 @@ const FM = (() => {
     return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
   }
 
+  // ---------- Сброс пароля: задержка 5 часов ----------
+  // Нажимаем «Забыли пароль?» -> запускается таймер на 5 часов.
+  // Таймер можно в любой момент остановить; при повторном запуске он начинается с нуля.
+  const PW_RESET_DELAY_MS = 5 * 60 * 60 * 1000;
+
+  // nowMs — текущее время (можно передать смоделированное; в UI считается «сколько осталось»).
+  async function getResetInfo(nowMs = Date.now()) {
+    const s = await loadSettings();
+    if (!s.resetRequestedAt) return { active: false, ready: false, leftMs: 0 };
+    const leftMs = Math.max(0, s.resetRequestedAt + PW_RESET_DELAY_MS - nowMs);
+    return { active: true, ready: leftMs <= 0, leftMs };
+  }
+
+  async function startPasswordReset() {
+    const s = await loadSettings();
+    s.resetRequestedAt = Date.now(); // всегда с нуля
+    await saveSettings(s);
+    return getResetInfo();
+  }
+
+  async function cancelPasswordReset() {
+    const s = await loadSettings();
+    s.resetRequestedAt = null;
+    await saveSettings(s);
+    return { active: false, ready: false, leftMs: 0 };
+  }
+
+  // Применяется только если таймер реально истёк (проверяется по хранилищу, не по локальным данным).
+  async function applyPasswordReset() {
+    const info = await getResetInfo();
+    if (!info.ready) return false;
+    const s = await loadSettings();
+    if (!s.resetRequestedAt) return false;
+    s.passwordHash = null;
+    s.resetRequestedAt = null;
+    await saveSettings(s);
+    return true;
+  }
+
   // ---------- Хранилище ----------
   async function loadSettings() {
     const raw = await browser.storage.local.get("settings");
@@ -193,11 +234,12 @@ const FM = (() => {
   }
 
   return {
-    DEFAULT_SETTINGS, SUBDOMAIN_RE,
+    DEFAULT_SETTINGS, SUBDOMAIN_RE, PW_RESET_DELAY_MS,
     pad2, parseHHMM, toHHMM, nowMinutes, fmtDuration, inInterval,
     normalizeHost, isValidDomain, hostMatchesSite, findSite,
     defaultState, dayKeyFor, getStatus, nextIntervalInfo,
     hashPassword, loadSettings, saveSettings, loadState, saveState,
+    getResetInfo, startPasswordReset, cancelPasswordReset, applyPasswordReset,
   };
 })();
 

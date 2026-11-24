@@ -10,10 +10,26 @@
   <section id="gate" class="page">
     <div class="panel">
       <h1>🔒 Настройки защищены</h1>
-      <p>Введите пароль, чтобы изменить интервалы, перечень сайтов и лимиты.</p>
-      <input id="gatePw" type="password" placeholder="Пароль" autocomplete="off">
+      <p id="gateText">Введите пароль, чтобы изменить интервалы, перечень сайтов и лимиты.</p>
+      <div class="pw-row">
+        <input id="gatePw" type="password" placeholder="Пароль" autocomplete="off">
+        <button id="gateRevealBtn" class="reveal-btn" title="Показать пароль" aria-label="Показать пароль">👁</button>
+      </div>
       <button id="gateBtn" class="btn primary">Войти</button>
       <div id="gateErr" class="error hidden">Неверный пароль.</div>
+
+      <!-- Сброс пароля: кнопка + таймер на 5 часов -->
+      <div id="resetBlock" class="reset-block">
+        <button id="forgotBtn" class="btn small ghost">Забыли пароль?</button>
+        <div id="resetPanel" class="hidden">
+          <div id="resetTimer" class="reset-timer">4:59:59</div>
+          <div class="hint">Забывание пароля займёт 5 часов. Можно запустить таймер позже — он всегда начинается с нуля.</div>
+          <div class="row center">
+            <button id="resetCancelBtn" class="btn small">⏹ Остановить таймер</button>
+            <button id="resetApplyBtn" class="btn small primary hidden">Сбросить пароль</button>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -65,9 +81,21 @@
         <button id="changePwBtn2" class="btn small">Сменить пароль</button>
       </div>
       <div id="pwForm2" class="hidden">
-        <input id="oldPw2" type="password" placeholder="Текущий пароль">
-        <input id="newPwA" type="password" placeholder="Новый пароль">
-        <input id="newPwB" type="password" placeholder="Повторите новый">
+        <div class="pw-row-v">
+          <input id="oldPw2" type="password" placeholder="Текущий пароль">
+          <button class="reveal-btn" data-reveal="oldPw2" title="Показать/скрыть пароль">👁</button>
+        </div>
+        <div class="pw-row-v">
+          <input id="newPwA" type="password" placeholder="Новый пароль">
+          <button class="reveal-btn" data-reveal="newPwA" title="Показать/скрыть пароль">👁</button>
+        </div>
+        <div class="pw-row-v">
+          <input id="newPwB" type="password" placeholder="Повторите новый">
+          <button class="reveal-btn" data-reveal="newPwB" title="Показать/скрыть пароль">👁</button>
+        </div>
+        <label class="switch-row small">
+          <input type="checkbox" id="revealAllChk2"> Показывать пароли при вводе
+        </label>
         <button id="savePwBtn2" class="btn primary small">Сохранить пароль</button>
         <div id="pwMsg2" class="hint"></div>
       </div>
