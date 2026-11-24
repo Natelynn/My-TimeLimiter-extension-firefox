@@ -9,6 +9,7 @@
 importScripts("../shared/utils.js");
 
 const TICK_ALARM = "fm-tick";
+const PW_RESET_ALARM = "fm-pw-reset"; // срабатывает через 5 часов после запроса сброса пароля
 let badgeTimer = null;
 
 // ---------- Активность вкладок: единый счётчик на все сайты ----------
@@ -177,9 +178,49 @@ browser.runtime.onMessage.addListener((msg, sender) => {
         await broadcastStatus();
         return { ok: true };
       })();
+    // ---------- Сброс пароля (таймер 5 часов) ----------
+    case "pw-reset-start":
+      return (async () => {
+        const info = await FM.startPasswordReset();
+        schedulePwResetAlarm(info.leftMs);
+        return { ok: true, ...info };
+      })();
+    case "pw-reset-cancel":
+      return (async () => {
+        const res = await FM.cancelPasswordReset();
+        await browser.alarms.clear(PW_RESET_ALARM);
+        return { ok: true, ...res };
+      })();
+    case "pw-reset-status":
+      return (async () => ({ ok: true, ...(await FM.getResetInfo()) }));
+    case "pw-reset-apply":
+      return (async () => {
+        const done = await FM.applyPasswordReset();
+        if (done) {
+          await browser.alarms.clear(PW_RESET_ALARM);
+          await broadcastStatus();
+        }
+        return { ok: done, ...(await FM.getResetInfo()) };
+      })();
   }
   return undefined;
 });
+
+// ---------- Alarm сброса пароля ----------
+function schedulePwResetAlarm(leftMs) {
+  browser.alarms.create(PW_RESET_ALARM, { delayInMinutes: Math.max(0.1, leftMs / 60000) });
+}
+
+async function restorePwResetAlarm() {
+  const info = await FM.getResetInfo();
+  if (!info.active) return;
+  if (info.ready) {
+    // таймер истёк, пока браузер/воркер был выключен
+    if (await FM.applyPasswordReset()) await broadcastStatus();
+  } else {
+    schedulePwResetAlarm(info.leftMs);
+  }
+}
 
 // ---------- Вкладки: следим за переключением ----------
 async function syncActiveTab() {
@@ -218,11 +259,20 @@ browser.windows.onFocusChanged.addListener((winId) => {
 // ---------- Alarm + boot ----------
 browser.runtime.onInstalled.addListener(boot);
 browser.runtime.onStartup.addListener(boot);
-browser.alarms.onAlarm.addListener((a) => { if (a.name === TICK_ALARM) tick(); });
+browser.alarms.onAlarm.addListener((a) => {
+  if (a.name === TICK_ALARM) return tick();
+  if (a.name === PW_RESET_ALARM) return onPwResetAlarm();
+});
+
+async function onPwResetAlarm() {
+  // страховка: применяем только если 5 часов реально прошло
+  if (await FM.applyPasswordReset()) await broadcastStatus();
+}
 
 async function boot() {
   browser.alarms.create(TICK_ALARM, { periodInMinutes: 1 });
   startLiveBadge();
+  await restorePwResetAlarm();
   await tick();
 }
 boot();

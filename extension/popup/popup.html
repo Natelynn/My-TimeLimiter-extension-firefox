@@ -33,15 +33,44 @@
   <!-- Вкладка 2: управление (нужен пароль) -->
   <section id="tab-manage" class="tab-page">
     <div id="lockBlock" class="card">
-      <div class="card-title">🔒 Для управления введите пароль</div>
-      <input id="pwInput" type="password" placeholder="Пароль" autocomplete="off">
-      <button id="unlockBtn" class="btn primary">Разблокировать</button>
-      <div id="pwError" class="error hidden">Неверный пароль.</div>
-      <div id="noPwHint" class="hint hidden">
-        Пароль ещё не задан. Задайте его — он защитит настройки от случайного изменения.
-        <input id="pwNew1" type="password" placeholder="Новый пароль">
-        <input id="pwNew2" type="password" placeholder="Повторите пароль">
-        <button id="setPwBtn" class="btn primary">Задать пароль</button>
+      <div id="lockTitle" class="card-title">🔒 Для управления введите пароль</div>
+
+      <!-- Пароль ещё не задан: удобная форма «задать пароль» -->
+      <div id="setupPwBox">
+        <div class="hint">Пароль ещё не задан. Придумайте его — он защитит настройки от случайного изменения.</div>
+        <div class="pw-row">
+          <input id="pwNew1" type="password" placeholder="Новый пароль" autocomplete="new-password">
+          <button class="reveal-btn" data-reveal="pwNew1" title="Показать/скрыть пароль">👁</button>
+        </div>
+        <div class="pw-row">
+          <input id="pwNew2" type="password" placeholder="Повторите пароль" autocomplete="new-password">
+          <button class="reveal-btn" data-reveal="pwNew2" title="Показать/скрыть пароль">👁</button>
+        </div>
+        <button id="setPwBtn" class="btn primary big">Задать пароль</button>
+      </div>
+
+      <!-- Пароль задан: поле ввода + кнопка «показать» -->
+      <div id="loginBox" class="hidden">
+        <div class="pw-row">
+          <input id="pwInput" type="password" placeholder="Пароль" autocomplete="off">
+          <button id="loginRevealBtn" class="reveal-btn" title="Показать пароль">👁</button>
+        </div>
+        <button id="unlockBtn" class="btn primary">Разблокировать</button>
+      </div>
+
+      <div id="pwError" class="error hidden"></div>
+
+      <!-- Сброс пароля: таймер 5 часов, можно остановить; повторный запуск — с нуля -->
+      <div id="resetBox" class="hidden">
+        <button id="forgotBtn" class="btn small ghost">Забыли пароль?</button>
+        <div id="resetPanel" class="hidden">
+          <div id="resetTimer" class="reset-timer">4:59:59</div>
+          <div class="hint">Сброс займёт 5 часов. Таймер можно остановить в любой момент; при повторном запуске он начнётся с нуля.</div>
+          <div class="row">
+            <button id="resetCancelBtn" class="btn small">⏹ Остановить</button>
+            <button id="resetApplyBtn" class="btn small primary hidden">Сбросить пароль</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -62,9 +91,21 @@
       <div class="card">
         <button id="changePwBtn" class="btn small">Сменить пароль</button>
         <div id="changePwForm" class="hidden">
-          <input id="oldPw" type="password" placeholder="Текущий пароль">
-          <input id="newPw1" type="password" placeholder="Новый пароль">
-          <input id="newPw2" type="password" placeholder="Повторите новый">
+          <div class="pw-row">
+            <input id="oldPw" type="password" placeholder="Текущий пароль" autocomplete="off">
+            <button class="reveal-btn" data-reveal="oldPw" title="Показать/скрыть пароль">👁</button>
+          </div>
+          <div class="pw-row">
+            <input id="newPw1" type="password" placeholder="Новый пароль" autocomplete="new-password">
+            <button class="reveal-btn" data-reveal="newPw1" title="Показать/скрыть пароль">👁</button>
+          </div>
+          <div class="pw-row">
+            <input id="newPw2" type="password" placeholder="Повторите новый" autocomplete="new-password">
+            <button class="reveal-btn" data-reveal="newPw2" title="Показать/скрыть пароль">👁</button>
+          </div>
+          <label class="switch-row">
+            <input type="checkbox" id="revealAllChk"> Показывать пароли при вводе
+          </label>
           <button id="savePwBtn" class="btn primary small">Сохранить</button>
           <div id="pwMsg" class="hint"></div>
         </div>
