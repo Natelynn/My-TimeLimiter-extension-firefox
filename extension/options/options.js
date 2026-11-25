@@ -10,6 +10,7 @@ const $ = (id) => document.getElementById(id);
 
 let settings = null;
 let sessionUnlocked = false; // пароль вводился в этой вкладке?
+let resetTickTimer = null;   // интервал обновления таймера сброса пароля
 
 // ---------- Инициализация ----------
 (async function init() {
@@ -17,13 +18,21 @@ let sessionUnlocked = false; // пароль вводился в этой вкл
 
   if (!settings.passwordHash) {
     // пароль ещё не задан — сначала заставим задать
-    $("gate").querySelector("p").textContent =
-      "Пароль ещё не задан. Придумайте пароль — он будет запрашиваться для входа в настройки и вкладку «Управление».";
-    $("gateBtn").textContent = "Задать пароль";
+    gateModeSetup();
   }
 
   $("gateBtn").addEventListener("click", gateSubmit);
   $("gatePw").addEventListener("keydown", (e) => { if (e.key === "Enter") gateSubmit(); });
+
+  // кнопка «показать пароль» на гейте + глобальная настройка pwReveal
+  applyRevealPref();
+  $("gateRevealBtn").addEventListener("click", () => toggleReveal($("gatePw"), $("gateRevealBtn")));
+
+  // сброс пароля по таймеру 5 часов
+  $("forgotBtn").addEventListener("click", startReset);
+  $("resetCancelBtn").addEventListener("click", cancelReset);
+  $("resetApplyBtn").addEventListener("click", applyReset);
+  await refreshResetUi();
 
   $("addIntervalBtn").addEventListener("click", () => {
     settings.intervals.push({
@@ -48,18 +57,70 @@ let sessionUnlocked = false; // пароль вводился в этой вкл
 
   $("changePwBtn2").addEventListener("click", () => $("pwForm2").classList.toggle("hidden"));
   $("savePwBtn2").addEventListener("click", changePassword);
+  $("revealAllChk2").addEventListener("change", async (e) => {
+    settings.pwReveal = e.target.checked;
+    await FM.saveSettings(settings);
+    applyRevealPref();
+  });
+  document.querySelectorAll(".reveal-btn[data-reveal]").forEach((btn) => {
+    btn.addEventListener("click", () => toggleReveal($(btn.dataset.reveal), btn));
+  });
 
   $("gatePw").focus();
 })();
+
+// ---------- Режим «задать пароль» на гейте ----------
+// Исправление: раньше поле просило ввести пароль даже когда он ещё не был задан.
+function gateModeSetup() {
+  $("gateText").textContent =
+    "Пароль ещё не задан. Придумайте и введите новый пароль — он будет запрашиваться для входа в настройки и вкладку «Управление».";
+  $("gatePw").placeholder = "Придумайте пароль";
+  $("gateBtn").textContent = "Задать пароль";
+  $("resetBlock").classList.add("hidden");
+}
+
+// Обычный режим гейта — «введите пароль» (используется после сброса пароля).
+function gateModeLogin() {
+  $("gateText").textContent = "Введите пароль, чтобы изменить интервалы, перечень сайтов и лимиты.";
+  $("gatePw").placeholder = "Пароль";
+  $("gateBtn").textContent = "Войти";
+  $("resetBlock").classList.remove("hidden");
+}
+
+// ---------- Показать/скрыть пароль ----------
+const PW_FIELD_IDS = ["gatePw", "oldPw2", "newPwA", "newPwB"];
+
+function applyRevealPref() {
+  const reveal = !!settings.pwReveal;
+  for (const id of PW_FIELD_IDS) {
+    const el = $(id);
+    if (el) el.type = reveal ? "text" : "password";
+  }
+  $("revealAllChk2").checked = reveal;
+  syncRevealBtn($("gatePw"), $("gateRevealBtn"));
+  document.querySelectorAll(".reveal-btn[data-reveal]").forEach((b) => syncRevealBtn($(b.dataset.reveal), b));
+}
+
+function toggleReveal(input, btn) {
+  input.type = input.type === "password" ? "text" : "password";
+  syncRevealBtn(input, btn);
+}
+
+function syncRevealBtn(input, btn) {
+  const shown = input.type === "text";
+  btn.textContent = shown ? "🙈" : "👁";
+  btn.title = shown ? "Скрыть пароль" : "Показать пароль";
+}
 
 // ---------- Гейт пароля ----------
 async function gateSubmit() {
   const pw = $("gatePw").value;
   if (!settings.passwordHash) {
-    // первый запуск: задаём пароль
+    // пароль ещё не задан — задаём его прямо здесь, одним полем
     if (pw.length < 4) { gateError("Пароль должен быть не короче 4 символов."); return; }
     settings.passwordHash = await FM.hashPassword(pw);
     await FM.saveSettings(settings);
+    sessionUnlocked = true;
     enterMain();
     return;
   }
@@ -75,9 +136,80 @@ function gateError(msg) {
 }
 
 function enterMain() {
+  stopResetTicker();
   $("gate").classList.add("hidden");
   $("main").classList.remove("hidden");
+  applyRevealPref();
   renderAll();
+}
+
+// ---------- Сброс пароля (таймер 5 часов) ----------
+async function startReset() {
+  const res = await browser.runtime.sendMessage({ type: "pw-reset-start" });
+  if (res && res.ok) { settings = await FM.loadSettings(); await refreshResetUi(); }
+}
+
+async function cancelReset() {
+  const res = await browser.runtime.sendMessage({ type: "pw-reset-cancel" });
+  if (res && res.ok) { settings = await FM.loadSettings(); await refreshResetUi(); }
+}
+
+async function applyReset() {
+  const res = await browser.runtime.sendMessage({ type: "pw-reset-apply" });
+  if (res && res.ok) {
+    // пароль сброшен — переходим в режим «задать новый пароль»
+    settings = await FM.loadSettings();
+    if (settings.passwordHash) gateModeLogin(); else gateModeSetup();
+    $("gatePw").value = "";
+    $("gateErr").classList.add("hidden");
+    sessionUnlocked = false;
+    stopResetTicker();
+    $("gate").classList.remove("hidden");
+    $("main").classList.add("hidden");
+    $("gatePw").focus();
+  } else {
+    $("gateErr").textContent = "Таймер ещё не истёк.";
+    $("gateErr").classList.remove("hidden");
+    await refreshResetUi();
+  }
+}
+
+async function refreshResetUi() {
+  const res = await browser.runtime.sendMessage({ type: "pw-reset-status" }).catch(() => null);
+  const panel = $("resetPanel");
+  const forgot = $("forgotBtn");
+  stopResetTicker();
+  if (!res || !res.active) {
+    panel.classList.add("hidden");
+    forgot.classList.remove("hidden");
+    $("resetApplyBtn").classList.add("hidden");
+    return;
+  }
+  forgot.classList.add("hidden");
+  panel.classList.remove("hidden");
+  if (res.ready) {
+    $("resetTimer").textContent = "Готово!";
+    $("resetCancelBtn").classList.add("hidden");
+    $("resetApplyBtn").classList.remove("hidden");
+  } else {
+    $("resetCancelBtn").classList.remove("hidden");
+    $("resetApplyBtn").classList.add("hidden");
+    const deadline = Date.now() + res.leftMs;
+    updateResetTimer(deadline - Date.now());
+    resetTickTimer = setInterval(() => updateResetTimer(deadline - Date.now()), 1000);
+  }
+}
+
+function updateResetTimer(leftMs) {
+  leftMs = Math.max(0, leftMs);
+  if (leftMs <= 0) { stopResetTicker(); refreshResetUi(); return; }
+  const total = Math.ceil(leftMs / 1000);
+  const h = Math.floor(total / 3600), m = Math.floor((total % 3600) / 60), s = total % 60;
+  $("resetTimer").textContent = `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+function stopResetTicker() {
+  if (resetTickTimer) { clearInterval(resetTickTimer); resetTickTimer = null; }
 }
 
 // ---------- Рендер ----------

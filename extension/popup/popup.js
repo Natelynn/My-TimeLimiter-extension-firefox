@@ -104,20 +104,58 @@ async function renderManage() {
     $("lockBlock").classList.add("hidden");
     $("manageBlock").classList.remove("hidden");
     $("enabledChk").checked = settings.enabled;
+    applyRevealPref();
     return;
   }
   $("manageBlock").classList.add("hidden");
   $("lockBlock").classList.remove("hidden");
-  if (!settings.passwordHash) {
-    $("pwInput").classList.add("hidden");
-    $("unlockBtn").classList.add("hidden");
-    $("noPwHint").classList.remove("hidden");
-  } else {
-    $("pwInput").classList.remove("hidden");
-    $("unlockBtn").classList.remove("hidden");
-    $("noPwHint").classList.add("hidden");
-  }
+  const hasPw = !!settings.passwordHash;
+  // Исправление: если пароль ещё не задан — не просим его ввести,
+  // а показываем удобную форму «задать пароль».
+  $("setupPwBox").classList.toggle("hidden", hasPw);
+  $("loginBox").classList.toggle("hidden", !hasPw);
+  $("resetBox").classList.toggle("hidden", !hasPw);
+  $("lockTitle").textContent = hasPw ? "🔒 Для управления введите пароль" : "🔑 Задайте пароль";
+  $("pwError").classList.add("hidden");
+  applyRevealPref();
+  await refreshResetUi();
 }
+
+// ---------- Показать/скрыть пароль ----------
+const PW_FIELD_IDS = ["pwInput", "pwNew1", "pwNew2", "oldPw", "newPw1", "newPw2"];
+
+function applyRevealPref() {
+  const reveal = !!settings.pwReveal;
+  for (const id of PW_FIELD_IDS) {
+    const el = $(id);
+    if (el) el.type = reveal ? "text" : "password";
+  }
+  $("revealAllChk").checked = reveal;
+  syncRevealBtn($("pwInput"), $("loginRevealBtn"));
+  document.querySelectorAll(".reveal-btn[data-reveal]").forEach((b) => syncRevealBtn($(b.dataset.reveal), b));
+}
+
+function toggleReveal(input, btn) {
+  input.type = input.type === "password" ? "text" : "password";
+  syncRevealBtn(input, btn);
+}
+
+function syncRevealBtn(input, btn) {
+  const shown = input.type === "text";
+  btn.textContent = shown ? "🙈" : "👁";
+  btn.title = shown ? "Скрыть пароль" : "Показать пароль";
+}
+
+$("loginRevealBtn").addEventListener("click", () => toggleReveal($("pwInput"), $("loginRevealBtn")));
+document.querySelectorAll(".reveal-btn[data-reveal]").forEach((btn) => {
+  btn.addEventListener("click", () => toggleReveal($(btn.dataset.reveal), btn));
+});
+$("revealAllChk").addEventListener("change", async (e) => {
+  settings.pwReveal = e.target.checked;
+  await FM.saveSettings(settings);
+  notifyChanged();
+  applyRevealPref();
+});
 
 $("setPwBtn").addEventListener("click", async () => {
   const a = $("pwNew1").value, b = $("pwNew2").value;
@@ -149,6 +187,75 @@ function showPwError(msg) {
   const el = $("pwError");
   el.textContent = msg;
   el.classList.remove("hidden");
+}
+
+// ---------- Сброс пароля (таймер 5 часов) ----------
+let resetTickTimer = null;
+
+$("forgotBtn").addEventListener("click", async () => {
+  const res = await browser.runtime.sendMessage({ type: "pw-reset-start" });
+  if (res && res.ok) { settings = await FM.loadSettings(); await refreshResetUi(); }
+});
+
+$("resetCancelBtn").addEventListener("click", async () => {
+  const res = await browser.runtime.sendMessage({ type: "pw-reset-cancel" });
+  if (res && res.ok) { settings = await FM.loadSettings(); await refreshResetUi(); }
+});
+
+$("resetApplyBtn").addEventListener("click", async () => {
+  const res = await browser.runtime.sendMessage({ type: "pw-reset-apply" });
+  if (res && res.ok) {
+    // пароль сброшен — снова показываем форму «задать пароль»
+    settings = await FM.loadSettings();
+    unlocked = false;
+    renderManage();
+  } else {
+    showPwError("Таймер ещё не истёк.");
+    await refreshResetUi();
+  }
+});
+
+async function refreshResetUi() {
+  stopResetTicker();
+  const panel = $("resetPanel");
+  const forgot = $("forgotBtn");
+  if (!settings.passwordHash) {
+    panel.classList.add("hidden");
+    forgot.classList.remove("hidden");
+    return;
+  }
+  const res = await browser.runtime.sendMessage({ type: "pw-reset-status" }).catch(() => null);
+  if (!res || !res.active) {
+    panel.classList.add("hidden");
+    forgot.classList.remove("hidden");
+    $("resetApplyBtn").classList.add("hidden");
+    return;
+  }
+  forgot.classList.add("hidden");
+  panel.classList.remove("hidden");
+  if (res.ready) {
+    $("resetTimer").textContent = "Готово!";
+    $("resetCancelBtn").classList.add("hidden");
+    $("resetApplyBtn").classList.remove("hidden");
+  } else {
+    $("resetCancelBtn").classList.remove("hidden");
+    $("resetApplyBtn").classList.add("hidden");
+    const deadline = Date.now() + res.leftMs;
+    updateResetTimer(deadline - Date.now());
+    resetTickTimer = setInterval(() => updateResetTimer(deadline - Date.now()), 1000);
+  }
+}
+
+function updateResetTimer(leftMs) {
+  leftMs = Math.max(0, leftMs);
+  if (leftMs <= 0) { stopResetTicker(); refreshResetUi(); return; }
+  const total = Math.ceil(leftMs / 1000);
+  const h = Math.floor(total / 3600), m = Math.floor((total % 3600) / 60), s = total % 60;
+  $("resetTimer").textContent = `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+function stopResetTicker() {
+  if (resetTickTimer) { clearInterval(resetTickTimer); resetTickTimer = null; }
 }
 
 $("openOptionsBtn").addEventListener("click", () => {
