@@ -158,14 +158,23 @@ $("revealAllChk").addEventListener("change", async (e) => {
 });
 
 $("setPwBtn").addEventListener("click", async () => {
-  const a = $("pwNew1").value, b = $("pwNew2").value;
-  if (a.length < 4) { showPwError("Пароль должен быть не короче 4 символов."); return; }
-  if (a !== b) { showPwError("Пароли не совпадают."); return; }
-  settings.passwordHash = await FM.hashPassword(a);
-  await FM.saveSettings(settings);
-  notifyChanged();
-  unlocked = true;
-  renderManage();
+  try {
+    // Перечитываем настройки из хранилища: локальная копия могла устареть,
+    // и сохранение устаревшего объекта «сверху» ломало задавание пароля.
+    settings = await FM.loadSettings();
+    const a = $("pwNew1").value, b = $("pwNew2").value;
+    if (a.length < 4) { showPwError("Пароль должен быть не короче 4 символов."); return; }
+    if (a !== b) { showPwError("Пароли не совпадают."); return; }
+    settings.passwordHash = await FM.hashPassword(a);
+    await FM.saveSettings(settings);
+    notifyChanged();
+    $("pwNew1").value = "";
+    $("pwNew2").value = "";
+    unlocked = true;
+    renderManage();
+  } catch (err) {
+    showPwError("Не удалось задать пароль: " + (err && err.message ? err.message : err));
+  }
 });
 
 $("unlockBtn").addEventListener("click", tryUnlock);
